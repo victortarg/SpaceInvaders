@@ -1,0 +1,355 @@
+<body>
+<canvas id="tela" width="400" height="600"></canvas>
+</body>
+<script>
+   // Space Invaders
+   // Autor: Ayo Oyewole
+   // Adaptado por: Gilson Pereira
+   // Código fonte original: http://www.ayodeji.ca/space-invaders/
+
+   // Programa principal
+
+   onkeydown = moverCanhao; // Define função chamada ao se pressionar uma tecla
+   
+   var pontuacao = 0
+   var aliensAbatidos = 0 
+   var tela;
+   var c;
+   var vidas = 3
+   
+   var somDanoPlayer;
+   var somLaser;
+   var somMorte;
+   var somMorteAlien;
+
+   var velocidadeLaser = 15
+   var canhao;
+   var laser;
+   var alien;
+   var alien1;
+   var alien2;
+   var fundo;
+   var fundoFinalDerrota;
+   var fundoFinalVitoria;
+   var canhaoX = 180;
+   var canhaoY = 500;
+   var laserX = 193;
+   var laserY = 520;
+   var alienX = 0;
+   var alienY = 0;
+   var inicioLaser = false;
+   var impactoLaserX;
+   var laserMovendo;
+   var intervalo = 8;
+   var posicao = 0;
+   
+   var alienColunas = [10, 38, 66, 94, 122, 150, 178, 206, 234, 262, 290];
+   var alienLinhas = [55, 85, 115, 145, 175];
+   var aliensRestantes = [];
+   
+   /*
+   linhas
+   55 85 - 40 pontos
+   115 145 - 20 pontos
+   175 - 10 pontos
+   */
+   
+
+
+   const C_ALTURA = 600;
+   const C_LARGURA = 400;
+   const TECLA_ESQUERDA = 37;
+   const TECLA_DIREITA = 39;
+   const TECLA_ACIMA = 38;
+   const VELOCIDADE_ALIENS = 0.4;//padrao 0.4
+   const VALOR_ALIEN1 = 10
+   const VALOR_ALIEN2 = 20
+   const VALOR_ALIEN3 = 40
+   
+
+   iniciar(); // Chama função inicial do jogo
+
+
+   function iniciar() {
+
+      tela = document.getElementById("tela");
+      c = tela.getContext("2d");
+
+      posicionarAlien();
+      carregarImagens();
+      carregarAudio()
+
+      setInterval("moverAliens()", intervalo);
+      setInterval("alienAtingido()", 6);
+   }
+
+
+   function carregarImagens() {
+
+      fundo = new Image()
+      fundo.src = "..\\sprites\\level5.png";
+
+      fundo.onload = function(){
+         c.drawImage(fundo, 0, 0);
+      }
+
+      canhao = new Image();
+      canhao.src = "..\\sprites\\player_.png";
+
+      canhao.onload = function(){
+         c.drawImage(canhao,canhaoX,canhaoY);
+      }
+      
+      laser = new Image();
+      laser.src = "..\\sprites\\bullet.png";
+
+      alien = new Image();
+      alien.src = "..\\sprites\\enemy0.png";
+
+      requestAnimationFrame(carregarImagens)
+   }
+
+   function carregarAudio() {
+      somLaser = new Audio("..\\audios\\laser.wav");
+      somLaser.volume = 0.1;
+      
+      somMorteAlien = new Audio("..\\audios\\burst.wav");
+      somMorteAlien.volume = 0.1;
+   }  
+
+   function imagemFimDeJogoDerrota() {
+
+      fundoFinalDerrota = new Image()
+      fundoFinalDerrota.src = "..\\sprites\\Derrota.png";
+      
+      fundoFinalDerrota.onload = function(){
+         c.drawImage(fundoFinalDerrota, 0, 0);
+         c.textAlign = "center";
+         c.font = "normal bold 20px arial,serif";
+         c.fillStyle = "white";
+         c.fillText("SE FODEU!!", C_LARGURA/2, 40);
+         c.fillText(`SCORE = [ ${aliensAbatidos} ]`, C_LARGURA/2, 100);
+         c.fillText(`SCORE = [ ${pontuacao} ]`, C_LARGURA/2, 120);
+      }
+
+      requestAnimationFrame(imagemFimDeJogoDerrota)
+   }
+
+   // c.textAlign = "center";
+   // c.font = "16px Arial";
+   // c.fillStyle = "white";
+   // c.fillText("Fim de Jogo", C_LARGURA/2, C_ALTURA/2);
+   // c.fillStyle = "black";
+
+
+   function imagemFimDeJogoVitoria() {
+
+      fundoFinalVitoria = new Image()
+      fundoFinalVitoria.src = "..\\sprites\\Vitoria.png";
+      
+      fundoFinalVitoria.onload = function(){
+         c.drawImage(fundoFinalVitoria, 0, 0);
+         c.textAlign = "center";
+         c.font = "normal bold 20px arial,serif";
+         c.fillStyle = "white";
+         c.fillText("É ASSIM É !?", C_LARGURA/2, C_ALTURA/2);
+         c.fillText(`KILLS = [ ${aliensAbatidos} ]`, C_LARGURA/2, 100);
+         c.fillText(`SCORE = [ ${pontuacao} ]`, C_LARGURA/2, 120);
+      }
+
+      requestAnimationFrame(imagemFimDeJogoVitoria)
+   }
+
+   function fimDeJogoDerrota() {
+      canhaoX = 180;
+      laserX = 193;
+      laserY = 520;
+      alienX = 0;
+      alienY = 0;
+      posicao = 0;
+      aliensRestantes = [];
+      inicioLaser = false;
+      
+      onkeydown = null;
+      
+      imagemFimDeJogoDerrota()
+   }
+
+
+   function fimDeJogoVitoria() {
+      canhaoX = 180;
+      laserX = 193;
+      laserY = 520;
+      alienX = 0;
+      alienY = 0;
+      posicao = 0;
+      aliensRestantes = [];
+      inicioLaser = false;
+      
+      onkeydown = null;
+
+      imagemFimDeJogoVitoria()
+   }
+
+   function posicionarAlien() {
+      for (var i = 0; i < alienColunas.length; i++){
+         for (var j = 0; j < alienLinhas.length; j++){
+            var novoAlien = {
+               posX : alienColunas[i],
+               posY : alienLinhas[j],
+               foiAtingido : false
+            }; 
+            aliensRestantes[aliensRestantes.length] = novoAlien;
+         }
+      }
+   }    
+
+   //NAO FUNCIONANDO AINDA !!!!!
+   function pontuacaoFinal() {
+      for(var i=0;i < alienLinhas.length;i++) {
+         if(!aliensRestantes[i].foiAtingido) {   
+            if(aliensRestantes[i].posY == 55 || aliensRestantes[i].posY == 85) {
+               pontuacao += VALOR_ALIEN3
+            }
+            if(aliensRestantes[i].posY == 115 || aliensRestantes[i].posY == 145) {
+               pontuacao += VALOR_ALIEN2
+            }
+            if(aliensRestantes[i].posY == 175) {
+               pontuacao += VALOR_ALIEN1
+            }
+         }
+      }
+   }
+
+   
+   function moverAliens(){
+      if (posicao <= 65){
+         alienX += VELOCIDADE_ALIENS;
+         posicao += VELOCIDADE_ALIENS;
+      } else if ((posicao > 65) && (posicao <= 80)){
+         alienX += VELOCIDADE_ALIENS;
+         alienY += VELOCIDADE_ALIENS
+         posicao += VELOCIDADE_ALIENS;            
+      } else if ((posicao > 80) && (posicao <= 147)){
+         alienX -= VELOCIDADE_ALIENS;
+         posicao += VELOCIDADE_ALIENS;
+      } else if ((posicao > 147) && (posicao < 162)){
+         alienX -= VELOCIDADE_ALIENS;
+         alienY += VELOCIDADE_ALIENS;
+         posicao += VELOCIDADE_ALIENS;
+      } else{
+         posicao = VELOCIDADE_ALIENS;
+      }
+      
+      for (var i = 0; i < aliensRestantes.length; i++){
+         if (!aliensRestantes[i].foiAtingido){
+            
+            //c.fillRect((alienX + aliensRestantes[i].posX - 1), (alienY + aliensRestantes[i].posY - 1), 20, 25);
+            c.drawImage(
+               alien, 
+               (alienX + aliensRestantes[i].posX), 
+               (alienY + aliensRestantes[i].posY)
+            );
+               
+            if ((aliensRestantes[i].posY + alienY + 23) >= canhaoY){
+               fimDeJogoDerrota();
+            }
+         }else if(aliensAbatidos == 55) {
+            fimDeJogoVitoria()
+         }
+      }
+   }
+   
+
+   function dispararLaser(){
+      if (inicioLaser && (laserY >= 60)){
+         laserY -= velocidadeLaser; // velocidade e quantidade de blocos
+         
+         //c.fillStyle = "black";
+         //c.fillRect(impactoLaserX, (laserY + 10), 6, 19);
+      
+         if (laserY >= 70){
+            c.drawImage(laser, impactoLaserX, laserY);
+         }
+      }
+
+      if (laserY < 60){
+         clearInterval(laserMovendo);
+         inicioLaser = false;
+         laserY = canhaoY;
+      }
+   }
+   
+
+   function alienAtingido(){
+      for(var i = 0; i < aliensRestantes.length; i++){
+         if ((laserY >= (alienY + aliensRestantes[i].posY)) && (laserY <= (alienY + aliensRestantes[i].posY + 20)) && 
+            (impactoLaserX >= (alienX + aliensRestantes[i].posX - 5)) && (impactoLaserX <= (alienX + aliensRestantes[i].posX + 18))){
+            if (!aliensRestantes[i].foiAtingido){
+               aliensRestantes[i].foiAtingido = true;
+               laserY = 0;
+               aliensAbatidos++
+               pontuacaoFinal()
+               //somMorteAlien.play() //som alien aingido
+               
+               // c.fillStyle = "black"
+               // c.fillRect((alienX + aliensRestantes[i].posX - 1), (alienY + aliensRestantes[i].posY - 1), 20, 25);
+               // c.fillRect(impactoLaserX, laserY, 6, 19);
+            }
+         }
+      }    
+   }
+
+   function laserAlien(){
+      if (inicioLaser && (laserAlienY >= 300)){
+         laserAlienY += 10; // velocidade e quantidade de blocos
+         
+         //c.fillStyle = "black";
+         //c.fillRect(impactoLaserX, (laserY + 10), 6, 19);
+      
+         if (laserAlienY >= 500){
+            c.drawImage(
+               laser, 
+               impactoLaserX, 
+               laserY
+            );
+         }
+      }
+
+      if (laserAlienY < 400){
+         clearInterval(laserMovendo);
+         inicioLaser = false;
+         laserAlienY = 0;
+      }
+   }
+
+
+   function moverCanhao(tecla){
+      var codigo = tecla.keyCode;
+            
+      if ((codigo == TECLA_DIREITA) && (canhaoX <= 360)){
+         //c.fillStyle = "black";
+         //c.fillRect(canhaoX, 537, 31, 19);
+         canhaoX += 10;
+         laserX += 10;
+         c.drawImage(canhao, canhaoX, canhaoY);
+      }
+      
+      if ((codigo == TECLA_ESQUERDA) && (canhaoX >= 9)){
+         //c.fillStyle = "black";
+         // c.fillRect(canhaoX, 537, 31, 19);
+         canhaoX -= 10;
+         laserX -= 10;
+         c.drawImage(canhao, canhaoX, canhaoY);
+      }
+      
+      if ((codigo == TECLA_ACIMA) && !inicioLaser){
+         inicioLaser = true;
+         c.drawImage(laser, laserX, laserY);
+         impactoLaserX = laserX;
+         laserMovendo = setInterval("dispararLaser()", 5);
+         //somLaser.play() //som Laser do canhão
+      }
+   }
+
+</script>
