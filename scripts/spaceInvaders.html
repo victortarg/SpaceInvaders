@@ -1,5 +1,7 @@
+<meta charset="utf-8">
 <body>
-<canvas id="tela" width="400" height="600"></canvas>
+   <canvas id="tela" width="400" height="600"></canvas>
+      <button onclick="Reiniciar();">Reiniciar</button>
 </body>
 <script>
    // Space Invaders
@@ -9,7 +11,7 @@
 
    // Programa principal
 
-   onkeydown = moverCanhao; // Define função chamada ao se pressionar uma tecla
+   onkeydown = moverCanhao;
    
    var pontuacao = 0
    var aliensAbatidos = 0 
@@ -17,6 +19,7 @@
    var c;
    var vidas = 3
    
+   var musicaDeFundo;
    var somDanoPlayer;
    var somLaser;
    var somMorte;
@@ -25,9 +28,10 @@
    var velocidadeLaser = 15
    var canhao;
    var laser;
-   var alien;
    var alien1;
    var alien2;
+   var alien3;
+   var laserAlien;
    var fundo;
    var fundoFinalDerrota;
    var fundoFinalVitoria;
@@ -35,40 +39,47 @@
    var canhaoY = 500;
    var laserX = 193;
    var laserY = 520;
+
    var alienX = 0;
    var alienY = 0;
+   var laserAlienY = 0;
+   var laserAlienX = 0;
+   var impactoLaserAlienY;
+   var numAleatorio;
+   var velocidadeLaserAlien = 20;
+
+
    var inicioLaser = false;
+   var inicioLaserAlien = false;
    var impactoLaserX;
    var laserMovendo;
+   var laserAlienMovendo;
    var intervalo = 8;
    var posicao = 0;
    
    var alienColunas = [10, 38, 66, 94, 122, 150, 178, 206, 234, 262, 290];
    var alienLinhas = [55, 85, 115, 145, 175];
    var aliensRestantes = [];
-   
-   /*
-   linhas
-   55 85 - 40 pontos
-   115 145 - 20 pontos
-   175 - 10 pontos
-   */
-   
+   var velocidadeAliens = 0.4;
+   var posicaoAliensAbatidosX = 5
+   var posicaoAliensAbatidosY = 15
+
+   var posicaoPontuacaoX = 365
+   var posicaoPontuacaoY = 590   
 
 
    const C_ALTURA = 600;
    const C_LARGURA = 400;
+
    const TECLA_ESQUERDA = 37;
    const TECLA_DIREITA = 39;
-   const TECLA_ACIMA = 38;
-   const VELOCIDADE_ALIENS = 0.4;//padrao 0.4
+   const TECLA_ESPACO = 32;
+
    const VALOR_ALIEN1 = 10
    const VALOR_ALIEN2 = 20
    const VALOR_ALIEN3 = 40
-   
 
-   iniciar(); // Chama função inicial do jogo
-
+   iniciar();
 
    function iniciar() {
 
@@ -77,44 +88,61 @@
 
       posicionarAlien();
       carregarImagens();
-      carregarAudio()
-
+      carregarAudio();
+      
+      setInterval("laserAlMovendo()", 2000)
       setInterval("moverAliens()", intervalo);
       setInterval("alienAtingido()", 6);
+      setInterval("canhaoAtingido()", 6);
    }
 
 
    function carregarImagens() {
-
+      
       fundo = new Image()
       fundo.src = "..\\sprites\\level5.png";
-
+      
       fundo.onload = function(){
          c.drawImage(fundo, 0, 0);
+         c.font = "bold 15px Consolas,sans-serif";
+         c.fillStyle = "white";
+         c.fillText(`Aliens abatidos:${aliensAbatidos}`, posicaoAliensAbatidosX, posicaoAliensAbatidosY);
+         c.fillText(`${pontuacao}`, posicaoPontuacaoX, posicaoPontuacaoY);
+         c.fillText(`VIDAS[${vidas}]`, 10, posicaoPontuacaoY);
       }
 
       canhao = new Image();
       canhao.src = "..\\sprites\\player_.png";
-
+      
       canhao.onload = function(){
          c.drawImage(canhao,canhaoX,canhaoY);
       }
       
+      laserAlien = new Image();
+      laserAlien.src = "..\\sprites\\bulletAlien.png";
+      
+      alien1 = new Image();
+      alien1.src = "..\\sprites\\enemy0.png";
+
+      alien2 = new Image();
+      alien2.src = "..\\sprites\\enemy2.png";
+
+      alien3 = new Image();
+      alien3.src = "..\\sprites\\enemy3.png";
+
       laser = new Image();
       laser.src = "..\\sprites\\bullet.png";
-
-      alien = new Image();
-      alien.src = "..\\sprites\\enemy0.png";
-
+      
       requestAnimationFrame(carregarImagens)
    }
 
    function carregarAudio() {
       somLaser = new Audio("..\\audios\\laser.wav");
-      somLaser.volume = 0.1;
+      somLaser.volume = 0.05;
       
       somMorteAlien = new Audio("..\\audios\\burst.wav");
-      somMorteAlien.volume = 0.1;
+      somMorteAlien.volume = 0.05;
+
    }  
 
    function imagemFimDeJogoDerrota() {
@@ -125,22 +153,15 @@
       fundoFinalDerrota.onload = function(){
          c.drawImage(fundoFinalDerrota, 0, 0);
          c.textAlign = "center";
-         c.font = "normal bold 20px arial,serif";
+         c.font = "bold 30px Century Gothic,sans-serif";
          c.fillStyle = "white";
          c.fillText("SE FODEU!!", C_LARGURA/2, 40);
-         c.fillText(`SCORE = [ ${aliensAbatidos} ]`, C_LARGURA/2, 100);
-         c.fillText(`SCORE = [ ${pontuacao} ]`, C_LARGURA/2, 120);
+         c.fillText('SCORE', C_LARGURA/2, 170);
+         c.fillText(`${pontuacao}`, C_LARGURA/2, 200);
       }
 
       requestAnimationFrame(imagemFimDeJogoDerrota)
    }
-
-   // c.textAlign = "center";
-   // c.font = "16px Arial";
-   // c.fillStyle = "white";
-   // c.fillText("Fim de Jogo", C_LARGURA/2, C_ALTURA/2);
-   // c.fillStyle = "black";
-
 
    function imagemFimDeJogoVitoria() {
 
@@ -150,11 +171,11 @@
       fundoFinalVitoria.onload = function(){
          c.drawImage(fundoFinalVitoria, 0, 0);
          c.textAlign = "center";
-         c.font = "normal bold 20px arial,serif";
+         c.font = "bold 30px Century Gothic,sans-serif";
          c.fillStyle = "white";
-         c.fillText("É ASSIM É !?", C_LARGURA/2, C_ALTURA/2);
-         c.fillText(`KILLS = [ ${aliensAbatidos} ]`, C_LARGURA/2, 100);
-         c.fillText(`SCORE = [ ${pontuacao} ]`, C_LARGURA/2, 120);
+         c.fillText("VITORIA!", C_LARGURA/2, 40);
+         c.fillText('SCORE', C_LARGURA/2, 170);
+         c.fillText(`${pontuacao}`, C_LARGURA/2, 200);
       }
 
       requestAnimationFrame(imagemFimDeJogoVitoria)
@@ -203,84 +224,65 @@
          }
       }
    }    
-
-   //NAO FUNCIONANDO AINDA !!!!!
-   function pontuacaoFinal() {
-      for(var i=0;i < alienLinhas.length;i++) {
-         if(!aliensRestantes[i].foiAtingido) {   
-            if(aliensRestantes[i].posY == 55 || aliensRestantes[i].posY == 85) {
-               pontuacao += VALOR_ALIEN3
-            }
-            if(aliensRestantes[i].posY == 115 || aliensRestantes[i].posY == 145) {
-               pontuacao += VALOR_ALIEN2
-            }
-            if(aliensRestantes[i].posY == 175) {
-               pontuacao += VALOR_ALIEN1
-            }
-         }
+   
+   function aumentaVelocidade() {
+      if(aliensAbatidos == 10) {
+         velocidadeAliens = 0.3
+      } else if(aliensAbatidos == 20) {
+         velocidadeAliens = 0.5
+      } else if(aliensAbatidos == 30) {
+         velocidadeAliens = 0.7
+      } else if(aliensAbatidos == 40) {
+         velocidadeAliens = 0.8
       }
    }
 
-   
-   function moverAliens(){
+   function moverAliens() {
       if (posicao <= 65){
-         alienX += VELOCIDADE_ALIENS;
-         posicao += VELOCIDADE_ALIENS;
+         alienX += velocidadeAliens;
+         posicao += velocidadeAliens;
       } else if ((posicao > 65) && (posicao <= 80)){
-         alienX += VELOCIDADE_ALIENS;
-         alienY += VELOCIDADE_ALIENS
-         posicao += VELOCIDADE_ALIENS;            
+         alienX += velocidadeAliens;
+         alienY += velocidadeAliens
+         posicao += velocidadeAliens;            
       } else if ((posicao > 80) && (posicao <= 147)){
-         alienX -= VELOCIDADE_ALIENS;
-         posicao += VELOCIDADE_ALIENS;
+         alienX -= velocidadeAliens;
+         posicao += velocidadeAliens;
       } else if ((posicao > 147) && (posicao < 162)){
-         alienX -= VELOCIDADE_ALIENS;
-         alienY += VELOCIDADE_ALIENS;
-         posicao += VELOCIDADE_ALIENS;
+         alienX -= velocidadeAliens;
+         alienY += velocidadeAliens;
+         posicao += velocidadeAliens;
       } else{
-         posicao = VELOCIDADE_ALIENS;
+         posicao = velocidadeAliens;
       }
-      
+      aumentaVelocidade()
+
       for (var i = 0; i < aliensRestantes.length; i++){
          if (!aliensRestantes[i].foiAtingido){
             
-            //c.fillRect((alienX + aliensRestantes[i].posX - 1), (alienY + aliensRestantes[i].posY - 1), 20, 25);
-            c.drawImage(
-               alien, 
-               (alienX + aliensRestantes[i].posX), 
-               (alienY + aliensRestantes[i].posY)
-            );
-               
+            if(aliensRestantes[i].posY == 55 || aliensRestantes[i].posY == 85) {
+               c.drawImage(alien3, (alienX + aliensRestantes[i].posX), (alienY + aliensRestantes[i].posY));
+
+            } else if(aliensRestantes[i].posY == 115 || aliensRestantes[i].posY == 145) {
+               c.drawImage(alien2, (alienX + aliensRestantes[i].posX), (alienY + aliensRestantes[i].posY));
+            
+            } else if(aliensRestantes[i].posY == 175) {
+               c.drawImage(alien1, (alienX + aliensRestantes[i].posX), (alienY + aliensRestantes[i].posY));
+            }
+
             if ((aliensRestantes[i].posY + alienY + 23) >= canhaoY){
                fimDeJogoDerrota();
+            } else if(vidas == 0) {
+               fimDeJogoDerrota();
             }
+
          }else if(aliensAbatidos == 55) {
             fimDeJogoVitoria()
          }
       }
    }
    
-
-   function dispararLaser(){
-      if (inicioLaser && (laserY >= 60)){
-         laserY -= velocidadeLaser; // velocidade e quantidade de blocos
-         
-         //c.fillStyle = "black";
-         //c.fillRect(impactoLaserX, (laserY + 10), 6, 19);
-      
-         if (laserY >= 70){
-            c.drawImage(laser, impactoLaserX, laserY);
-         }
-      }
-
-      if (laserY < 60){
-         clearInterval(laserMovendo);
-         inicioLaser = false;
-         laserY = canhaoY;
-      }
-   }
    
-
    function alienAtingido(){
       for(var i = 0; i < aliensRestantes.length; i++){
          if ((laserY >= (alienY + aliensRestantes[i].posY)) && (laserY <= (alienY + aliensRestantes[i].posY + 20)) && 
@@ -289,67 +291,124 @@
                aliensRestantes[i].foiAtingido = true;
                laserY = 0;
                aliensAbatidos++
-               pontuacaoFinal()
-               //somMorteAlien.play() //som alien aingido
+               somMorteAlien.play()
                
-               // c.fillStyle = "black"
-               // c.fillRect((alienX + aliensRestantes[i].posX - 1), (alienY + aliensRestantes[i].posY - 1), 20, 25);
-               // c.fillRect(impactoLaserX, laserY, 6, 19);
+               if(aliensRestantes[i].posY == 55 || aliensRestantes[i].posY == 85) {
+                  pontuacao += VALOR_ALIEN3
+               }else if(aliensRestantes[i].posY == 115 || aliensRestantes[i].posY == 145) {
+                  pontuacao += VALOR_ALIEN2
+               }else if(aliensRestantes[i].posY == 175) {
+                  pontuacao += VALOR_ALIEN1
+               }
             }
          }
-      }    
+      }
    }
 
-   function laserAlien(){
-      if (inicioLaser && (laserAlienY >= 300)){
-         laserAlienY += 10; // velocidade e quantidade de blocos
-         
-         //c.fillStyle = "black";
-         //c.fillRect(impactoLaserX, (laserY + 10), 6, 19);
+   
+   function laserAlMovendo() {
+      numAleatorio= parseInt(Math.random()*aliensRestantes.length-1)
+
+
+      laserAlienX = aliensRestantes[numAleatorio].posX
+      impactoLaserAlienY = (alienY + aliensRestantes[numAleatorio].posY)
+      laserAlienY = impactoLaserAlienY
+
+      c.drawImage(laserAlien, laserAlienX, laserAlienY);
+      laserAlienMovendo = setInterval("dispararLaserAlien()", velocidadeLaserAlien);
+   }
+
+   function dispararLaserAlien(){
+
+      if (laserAlienY <= 625) {
+         laserAlienY += 10;
+
+         if (laserAlienY <= 625){
+            c.drawImage(laserAlien, laserAlienX, laserAlienY);
+         }
+      }
       
-         if (laserAlienY >= 500){
-            c.drawImage(
-               laser, 
-               impactoLaserX, 
-               laserY
-            );
+      if (laserAlienY > 625){
+         laserAlienY = impactoLaserAlienY;
+         clearInterval(laserAlienMovendo);
+      }
+   }
+   
+   function dispararLaser(){
+      if (inicioLaser && (laserY >= 5)){
+         laserY -= velocidadeLaser; 
+      
+         if (laserY >= 5){
+            c.drawImage(laser, impactoLaserX, laserY);
          }
       }
 
-      if (laserAlienY < 400){
+      if (laserY < 5){
          clearInterval(laserMovendo);
          inicioLaser = false;
-         laserAlienY = 0;
+         laserY = canhaoY;
       }
    }
-
 
    function moverCanhao(tecla){
       var codigo = tecla.keyCode;
             
       if ((codigo == TECLA_DIREITA) && (canhaoX <= 360)){
-         //c.fillStyle = "black";
-         //c.fillRect(canhaoX, 537, 31, 19);
          canhaoX += 10;
          laserX += 10;
          c.drawImage(canhao, canhaoX, canhaoY);
       }
       
       if ((codigo == TECLA_ESQUERDA) && (canhaoX >= 9)){
-         //c.fillStyle = "black";
-         // c.fillRect(canhaoX, 537, 31, 19);
          canhaoX -= 10;
          laserX -= 10;
          c.drawImage(canhao, canhaoX, canhaoY);
       }
       
-      if ((codigo == TECLA_ACIMA) && !inicioLaser){
+      if ((codigo == TECLA_ESPACO) && !inicioLaser){
          inicioLaser = true;
-         c.drawImage(laser, laserX, laserY);
          impactoLaserX = laserX;
-         laserMovendo = setInterval("dispararLaser()", 5);
-         //somLaser.play() //som Laser do canhão
+         c.drawImage(laser, laserX, laserY);
+         laserMovendo = setInterval("dispararLaser()", velocidadeLaser);
+         somLaser.play()
       }
+   }
+
+   function canhaoAtingido() {
+      if(((laserAlienX <= canhaoX) || (laserAlienX >= canhaoX + 50)) && (laserAlienY == canhaoY - 23)){
+         vidas--
+      }
+   }
+   
+   function Reiniciar() {
+      canhaoX = 180;
+      laserX = 193;
+      laserY = 520;
+      alienX = 0;
+      alienY = 0;
+      posicao = 0;
+      aliensRestantes = [];
+      inicioLaser = false;
+      aliensAbatidos = 0
+      pontuacao = 0
+      velocidadeAliens = 0.4
+      velocidadeLaser = 15
+      vidas = 3
+      posicaoAliensAbatidosX = 5
+      posicaoAliensAbatidosY = 15
+      posicaoPontuacaoX = 365
+      posicaoPontuacaoY = 590
+      
+      
+      onkeydown = moverCanhao;
+
+      posicionarAlien()
+      carregarImagens()
+      carregarAudio()
+
+      setInterval("alienAtingido()", 6);
+      setInterval("canhaoAtingido()", 6)
+
    }
 
 </script>
